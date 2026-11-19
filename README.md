@@ -64,7 +64,7 @@ Raw MES Inspection Logs (120,480 rows)
 
 ## Dataset Schema & Acceptance Standards (`wafer_metrology_120k.csv`)
 
-The benchmark models 33 telemetry columns across 15 sequential lots per vendor (`LOT_A_01`–`LOT_A_15` and `LOT_B_01`–`LOT_B_15`), evaluated against **SEMI PV22 / MF1530 / PV17** tolerances[cite: 3]. Multi-defect wafers are classified into `Sorting_Result` via a deterministic severity hierarchy[cite: 3]:
+The benchmark models 33 telemetry columns across 15 sequential lots per vendor (`LOT_A_01`–`LOT_A_15` and `LOT_B_01`–`LOT_B_15`), evaluated against **SEMI PV22 / MF1530 / PV17** tolerances. Multi-defect wafers are classified into `Sorting_Result` via a deterministic severity hierarchy:
 
 `Micro_Crack > Edge_Chip > Surface_Chip > TTV_OOS > Warp_OOS > Bow_OOS > Saw_Mark > Stain > Pinhole > PASS`
 
