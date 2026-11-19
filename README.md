@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # A Two-Stage Method for Diagnosing Yield Loss in U.S. Solar Wafer Manufacturing
 
 **Metrology and Lot-Level Defect Analysis on a 120,000-Wafer Synthetic Benchmark**
@@ -30,3 +31,6 @@ wafer-spc-defect-attribution/
 │   └── analyze_wafer_spc.py              # MES cleaning, SPC calculations, and chart generation
 ├── requirements.txt
 └── README.md
+=======
+# wafer-spc-defect-attribution
+>>>>>>> 89f161e7305fc09cedf98db9e5ddba45a704f5b5
