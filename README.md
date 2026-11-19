@@ -64,11 +64,11 @@ Raw MES Inspection Logs (120,480 rows)
 
 ## Dataset Schema & Acceptance Standards (`wafer_metrology_120k.csv`)
 
-The benchmark models 33 telemetry columns across 15 sequential lots per vendor (`LOT_A_01`–`LOT_A_15` and `LOT_B_01`–`LOT_B_15`), evaluated against **SEMI PV22 / MF1530 / PV17** tolerances. Multi-defect wafers are classified into `Sorting_Result` via a deterministic severity hierarchy:
+The benchmark models 33 telemetry columns across 15 sequential lots per vendor (`LOT_A_01`–`LOT_A_15` and `LOT_B_01`–`LOT_B_15`), evaluated against **SEMI PV22 / MF1530 / PV17** tolerances[cite: 3]. Multi-defect wafers are classified into `Sorting_Result` via a deterministic severity hierarchy[cite: 3]:
 
-$$\text{Micro\_Crack} > \text{Edge\_Chip} > \text{Surface\_Chip} > \text{TTV\_OOS} > \text{Warp\_OOS} > \text{Bow\_OOS} > \text{Saw\_Mark} > \text{Stain} > \text{Pinhole} > \text{PASS}$$
+`Micro_Crack > Edge_Chip > Surface_Chip > TTV_OOS > Warp_OOS > Bow_OOS > Saw_Mark > Stain > Pinhole > PASS`
 
-| Feature Group | Key Columns | A-Grade Spec ($\text{LCL}$–$\text{UCL}$) | Off-Grade Failure Label |
+| Feature Group | Key Columns | A-Grade Spec (LCL–UCL) | Off-Grade Failure Label |
 | :--- | :--- | :--- | :--- |
 | **Identifiers & Logs** | `Time_Log`, `Vendor_ID`, `Lot_ID`, `Sorting_Result` | — | `PASS` or Primary Defect |
 | **Outer Geometry** | `Side_Length_*`, `Diagonal_*`, `Chamfer_*`, `Corner_Angle_*` | $182.0 \pm 0.25\text{ mm}$ / $247.0 \pm 0.50\text{ mm}$ / $90.0^\circ \pm 0.3^\circ$ | Kept strictly within spec |
