@@ -44,7 +44,7 @@ def generate_vendor_data(vendor_id: str, n_lots: int = 15, wafers_per_lot: int =
     df = pd.DataFrame(data)
 
     # 3. Thickness, Resistivity, & Flatness Metrology
-    # Scenario A for Boxplot: Outliers > Defects (Tight IQR with statistical outliers still inside LCL/UCL)
+    # Scenario A for Boxplot: Outliers > Defects (Tight IQR with statistical outliers still inside the specification limits)
     # Thickness Spec: 145 - 165 um | Resistivity Spec: 0.5 - 2.0 ohm-cm
     thick_mean = np.random.normal(155.0, 1.2, total_wafers)
     outlier_idx = np.random.choice(total_wafers, size=int(total_wafers * 0.035), replace=False)
@@ -58,7 +58,7 @@ def generate_vendor_data(vendor_id: str, n_lots: int = 15, wafers_per_lot: int =
     df["Resistivity_Min"] = df["Resistivity_Mean"] - np.random.uniform(0.05, 0.12, total_wafers)
     df["Resistivity_Max"] = df["Resistivity_Mean"] + np.random.uniform(0.05, 0.12, total_wafers)
 
-    # Scenario B for Boxplot: Defects > Outliers on Vendor B (Wide IQR shifted near UCL)
+    # Scenario B: More specification breaches than outliers on Vendor B
     # Specs: TTV <= 20 um | Warp <= 40 um | |Bow| <= 30 um | Saw_Mark_Depth <= 12 um
     if vendor_id == "A":
         # Vendor A: Tight slicing/geometry (almost zero geometry OOS)
@@ -109,7 +109,8 @@ def generate_vendor_data(vendor_id: str, n_lots: int = 15, wafers_per_lot: int =
     df["Stain_Count"] = (np.random.rand(total_wafers) < p_stain).astype(int)
     df["Pinhole_Count"] = (np.random.rand(total_wafers) < p_pinhole).astype(int)
 
-    # 5. Apply Multi-Defect Priority Rule for Sorting_Result
+    # 5. Assign the A-grade result from complete synthetic inspection data.
+    # Keep this result when simulating missing readings in the inspection export.
     # Priority: Micro_Crack > Edge_Chip > Surface_Chip > TTV_OOS > Warp_OOS > Bow_OOS > Saw_Mark > Stain > Pinhole > PASS
     conditions = [
         df["Micro_Crack_Count"] >= 1,
@@ -133,6 +134,22 @@ def generate_vendor_data(vendor_id: str, n_lots: int = 15, wafers_per_lot: int =
         "Stain",
         "Pinhole",
     ]
+    # These characteristics are generated within bounds in the baseline scenario.
+    # Check them explicitly so a future scenario cannot pass an out-of-spec wafer.
+    side_cols = [f"Side_Length_{side}" for side in ("Top", "Bottom", "Left", "Right")]
+    corner_cols = [f"Corner_Angle_{corner}" for corner in ("TL", "TR", "BL", "BR")]
+    conditions.extend([
+        ~df["Thickness_Mean"].between(145.0, 165.0),
+        ~df["Resistivity_Mean"].between(0.50, 2.00),
+        ((df[side_cols] < 181.75) | (df[side_cols] > 182.25)).any(axis=1),
+        ((df[["Diagonal_1", "Diagonal_2"]] < 246.50)
+         | (df[["Diagonal_1", "Diagonal_2"]] > 247.50)).any(axis=1),
+        ((df[corner_cols] < 89.70) | (df[corner_cols] > 90.30)).any(axis=1),
+    ])
+    choices.extend([
+        "Thickness_OOS", "Resistivity_OOS", "Side_Length_OOS",
+        "Diagonal_OOS", "Corner_Angle_OOS",
+    ])
     df["Sorting_Result"] = np.select(conditions, choices, default="PASS")
 
     # Round float columns to realistic metrology precision
@@ -154,7 +171,9 @@ df_a = generate_vendor_data("A", n_lots=15, wafers_per_lot=4000)
 df_b = generate_vendor_data("B", n_lots=15, wafers_per_lot=4000)
 combined_df = pd.concat([df_a, df_b], ignore_index=True)
 
-# 6. Inject Natural Sensor NULLs (~0.6% scattered across metrology columns, never in IDs/Result)
+# 6. Simulate missing inspection readings after grading (~0.6% per channel).
+# The random loss represents possible sensor or data-transfer failures. IDs and
+# Sorting_Result survive in this scenario, even when an exported reading is blank.
 metrology_cols = [
     "Thickness_Mean", "TTV", "Resistivity_Mean", "Bow", "Warp", "Saw_Mark_Depth",
     "Side_Length_Top", "Diagonal_1"
@@ -163,7 +182,7 @@ for col in metrology_cols:
     null_indices = np.random.choice(combined_df.index, size=int(len(combined_df) * 0.006), replace=False)
     combined_df.loc[null_indices, col] = np.nan
 
-# 7. Inject Natural Exact Duplicate Rows (~0.4% from conveyor re-scans / MES retry logs)
+# 7. Inject Exact Duplicate Rows (~0.4% from conveyor re-scans / MES retry logs)
 dup_indices = np.random.choice(combined_df.index, size=int(len(combined_df) * 0.004), replace=False)
 duplicates = combined_df.loc[dup_indices].copy()
 combined_df = pd.concat([combined_df, duplicates], ignore_index=True)

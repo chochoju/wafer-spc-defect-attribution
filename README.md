@@ -1,6 +1,6 @@
 # A Two-Stage Method for Diagnosing Yield Loss in U.S. Solar Wafer Manufacturing
 
-**Metrology and Lot-Level Defect Analysis on a 120,000-Wafer Synthetic Benchmark**
+**Metrology and Lot-Level Defect Analysis on a Synthetic Benchmark**
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
@@ -10,14 +10,9 @@
 
 ## Overview
 
-This repository contains the reproducible synthetic metrology benchmark, Statistical Process Control (SPC) diagnostic pipeline, and publication figures accompanying the white paper *"A Two-Stage Method for Diagnosing Yield Loss in U.S. Solar Wafer Manufacturing: Metrology and Lot-Level Defect Analysis on a Synthetic Benchmark."*
+A solar wafer line can meet its dimensional specifications and still lose yield to chips and cracks. A wafer can also breach a specification while falling within the range an outlier screen treats as typical for the line. This project demonstrates a two-stage workflow for deciding where to investigate these losses.
 
-In high-throughput monocrystalline silicon wafering, a 2% to 4% baseline yield gap between parallel equipment lines translates into millions of dollars in annual silicon scrap. Standard single-layer SPC dashboards frequently misdiagnose these losses by conflating benign statistical outliers with hard engineering specification breaches (`LCL`/`UCL`), or by masking discrete mechanical handling damage behind stable dimensional averages.
-
-Evaluated across **120,000 unique M10 ($182\text{ mm} \times 182\text{ mm}$) monocrystalline silicon wafers** spanning 30 sequential production lots (15 lots per vendor), this two-stage diagnostic pipeline isolates two structurally distinct failure regimes:
-
-* **Vendor A (96.09% Mean Yield):** Zero continuous dimensional breaches (`0.00%` OOS across all geometry channels), with **90.06%** of rejects driven by discrete mechanical handling damage (`Edge_Chip`, `Micro_Crack`, `Surface_Chip`).
-* **Vendor B (92.68% Mean Yield):** High mechanical handling integrity, with **87.04%** of rejects driven by diamond-wire tension relaxation and thermal slicing drift (`TTV_OOS`, `Warp_OOS`, `Saw_Mark`, `Bow_OOS`).
+The benchmark contains **120,000 simulated M10 silicon wafers** across **30 lots** on two equipment lines, labeled Vendor A and Vendor B in the data. Stage 1 compares statistical outliers with benchmark specification limits. Stage 2 tracks A-grade yield and primary reject codes by lot. The settings and grade labels are simulated. The results illustrate how to prioritize checks in a plant investigation.
 
 ---
 
@@ -26,122 +21,106 @@ Evaluated across **120,000 unique M10 ($182\text{ mm} \times 182\text{ mm}$) mon
 ```text
 wafer-spc-defect-attribution/
 ├── data/
-│   └── wafer_metrology_120k.csv          # 120,480 raw records (120,000 unique wafers + 480 MES duplicates)
+│   └── wafer_metrology_120k.csv
 ├── figures/
-│   ├── fig1_iqr_vs_spec_boxplots.png     # Stage 1: IQR statistical outliers vs. LCL/UCL limits
-│   ├── fig2_longitudinal_lot_yield.png   # Stage 2A: Sequential 15-lot yield trajectories
-│   ├── fig3_defect_pareto_comparison.png # Stage 2B: Defect Pareto concentration by vendor
-│   └── fig4_lot_defect_heatmaps.png      # Stage 2B: Lot-level defect clustering heatmaps
+│   ├── fig1_iqr_vs_spec_boxplots.png
+│   ├── fig2_longitudinal_lot_yield.png
+│   ├── fig3_defect_pareto_comparison.png
+│   └── fig4_lot_defect_heatmaps.png
 ├── src/
-│   ├── generate_wafer_metrology.py       # Reproducible synthetic data generator (seed=42)
-│   └── analyze_wafer_spc.py              # MES cleaning, SPC calculations, and chart generation
+│   ├── generate_wafer_metrology.py
+│   └── analyze_wafer_spc.py
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Diagnostic Architecture
+## Data and Grading
 
-```text
-Raw MES Inspection Logs (120,480 rows)
-        │
-        ▼
-[MES Telemetry Hygiene Gate]
-  ├── Deduplicate conveyor re-scan / retry logs (-480 exact duplicates -> 120,000 unique wafers)
-  └── Preserve pairwise sensor evaluation across intermittent optical dropouts (4.73% row-wise nulls)
-        │
-        ├──► [Stage 1: Parametric Dispersion & Spec Audit]
-        │      • Decouples nonparametric 1.5 × IQR fences from engineering LCL/UCL limits
-        │      • Separates benign statistical outliers (Outliers > Defects) from true OOS drift (Defects > Outliers)
-        │
-        └──► [Stage 2: Longitudinal & Categorical Forensics]
-               • Tracks sequential lot-by-lot yield trajectories across 15 lots/vendor (4,000 wafers/lot)
-               • Isolates equipment wear windows and maintenance resets via Pareto & lot-level heatmaps
-```
+The generator creates 15 lots of 4,000 wafers per line using random seed 42. **`PASS` denotes an A-grade wafer** that meets the benchmark limits and triggers no reject condition. The generator grades the complete simulated inspection record before rounding and masking exported measurements. Blank readings model possible sensor faults or network interruptions, so a blank can appear alongside a previously assigned grade.
 
----
+The raw export has **120,480 rows**, including 480 exact duplicates that simulate inspection retries. After deduplication, **5,659 of 120,000 unique wafers (4.72%)** have at least one missing reading. Each of the eight affected channels has **720 missing values (0.60%)**.
 
-## Dataset Schema & Acceptance Standards (`wafer_metrology_120k.csv`)
+| Measurement group | CSV columns | Benchmark acceptance limits |
+| --- | --- | --- |
+| Outer geometry | `Side_Length_*`, `Diagonal_*`, `Corner_Angle_*` | Side length 182.00 ± 0.25 mm, diagonal 247.00 ± 0.50 mm, corner angle 90.00° ± 0.30° |
+| Thickness and resistivity | `Thickness_Mean`, `Resistivity_Mean` | 145.0–165.0 µm and 0.50–2.00 Ω·cm |
+| Flatness and slicing | `TTV`, `Warp`, `Bow`, `Saw_Mark_Depth` | TTV ≤ 20 µm, warp ≤ 40 µm, absolute bow ≤ 30 µm, saw-mark depth ≤ 12 µm |
+| Defect counts | `Edge_Chip_Count`, `Micro_Crack_Count`, `Surface_Chip_Count`, `Stain_Count`, `Pinhole_Count` | Up to two minor edge chips. Micro-crack, surface chip, stain, and pinhole counts must each be zero. |
 
-The benchmark models 33 telemetry columns across 15 sequential lots per vendor (`LOT_A_01`–`LOT_A_15` and `LOT_B_01`–`LOT_B_15`), evaluated against **SEMI PV22 / MF1530 / PV17** tolerances. Multi-defect wafers are classified into `Sorting_Result` via a deterministic severity hierarchy:
+`Time_Log`, `Vendor_ID`, and `Lot_ID` identify the inspection record. Chamfer lengths and the recorded thickness and resistivity minima and maxima are included for context. For wafers with multiple failed checks, `Sorting_Result` stores the first applicable code in this order: micro-crack, edge chip, surface chip, TTV, warp, bow, saw mark, stain, pinhole, then the remaining thickness, resistivity, and outer geometry checks.
 
-`Micro_Crack > Edge_Chip > Surface_Chip > TTV_OOS > Warp_OOS > Bow_OOS > Saw_Mark > Stain > Pinhole > PASS`
+## Stage 1 — Compare Outliers with Specification Breaches
 
-| Feature Group | Key Columns | A-Grade Spec (LCL–UCL) | Off-Grade Failure Label |
-| :--- | :--- | :--- | :--- |
-| **Identifiers & Logs** | `Time_Log`, `Vendor_ID`, `Lot_ID`, `Sorting_Result` | — | `PASS` or Primary Defect |
-| **Outer Geometry** | `Side_Length_*`, `Diagonal_*`, `Chamfer_*`, `Corner_Angle_*` | $182.0 \pm 0.25\text{ mm}$ / $247.0 \pm 0.50\text{ mm}$ / $90.0^\circ \pm 0.3^\circ$ | Kept strictly within spec |
-| **Center Thickness** | `Thickness_Mean`, `Thickness_Min`, `Thickness_Max` | $145.0\text{ – }165.0\ \mu\text{m}$ | `Outliers > Defects` ($0.00\%$ OOS) |
-| **Bulk Resistivity** | `Resistivity_Mean`, `Resistivity_Min`, `Resistivity_Max` | $0.50\text{ – }2.00\ \Omega\cdot\text{cm}$ | `Outliers > Defects` ($0.00\%$ OOS) |
-| **Flatness & Slicing** | `TTV`, `Warp`, `Bow`, `Saw_Mark_Depth` | $\text{TTV} \le 20\ \mu\text{m}$; $\text{Warp} \le 40\ \mu\text{m}$; $\|\text{Bow}\| \le 30\ \mu\text{m}$; $\text{Saw Mark} \le 12\ \mu\text{m}$ | `TTV_OOS`, `Warp_OOS`, `Bow_OOS`, `Saw_Mark` |
-| **Discrete AOI Counts** | `Micro_Crack_Count`, `Edge_Chip_Count`, `Surface_Chip_Count`, `Stain_Count`, `Pinhole_Count` | `Edge_Chip` $\le 2$; all other defect counts $= 0$ | `Micro_Crack`, `Edge_Chip`, `Surface_Chip`, `Stain`, `Pinhole` |
+For each metric and line, the analysis uses the available readings to calculate IQR fences and check the lower and upper specification limits (LSL and USL). It evaluates the two flags independently. On Line B, **1,050 of 1,261 total thickness variation (TTV) specification breaches (83.3%)** fell inside the pooled IQR fences.
 
----
+| Line B TTV classification | Wafer count |
+| --- | ---: |
+| IQR outlier only | 204 |
+| Out of specification only | 1,050 |
+| Both | 211 |
+| Neither | 58,176 |
+| **Total with a TTV reading** | **59,641** |
 
-## Summary of Empirical Results & Visual Findings
+![Six metrology boxplots comparing IQR outliers and specification limits](figures/fig1_iqr_vs_spec_boxplots.png)
 
-| Diagnostic Metric | Vendor A | Vendor B | Engineering Interpretation |
-| :--- | :---: | :---: | :--- |
-| **Clean Unique Wafers** | 60,000 | 60,000 | 15 lots × 4,000 wafers/lot |
-| **Mean A-Grade Yield** | **96.09%** | **92.68%** | 3.41 percentage-point baseline yield gap |
-| **Min / Max Lot Yield** | 93.67% (`LOT_A_12`) / 96.90% (`LOT_A_07`) | 89.95% (`LOT_B_11`) / 93.85% (`LOT_B_14`) | Progressive equipment wear & maintenance reset |
-| **Total Rejected Wafers** | 2,343 | 4,390 | Vendor B generates 1.87× more scrap volume |
-| **Primary Failure Regime** | Mechanical Handling (**90.06%**) | Slicing & Thermal Geometry (**87.04%**) | Distinct physical mechanisms requiring targeted PM |
+## Stage 2 — Track Yield and Primary Reject Codes by Lot
 
-### Key Diagnostic Visuals (`figures/`)
+A-grade yield is the number of wafers labeled `PASS` divided by the number of unique wafers in the lot. This stage uses the stored grade even when an exported measurement is missing. The Pareto and heatmaps count **one primary reject code per rejected wafer**.
 
-* **`fig1_iqr_vs_spec_boxplots.png`:** Demonstrates why `Thickness_Mean` (~3.9% outliers, 0.00% OOS) and `Resistivity_Mean` (~3.5% outliers, 0.00% OOS) should not trigger line stops, whereas Vendor B's `TTV` (2.11% OOS vs. 0.70% outliers) and `Warp` (1.58% OOS vs. 0.72% outliers) breach `UCL` while remaining inside boxplot whiskers.
-* **`fig2_longitudinal_lot_yield.png`:** Captures progressive mechanical gripper degradation on Vendor A (`LOT_A_09`–`LOT_A_12`) and diamond-wire tension drift on Vendor B (`LOT_B_07`–`LOT_B_11`), followed by immediate post-maintenance yield recovery.
-* **`fig3_defect_pareto_comparison.png` & `fig4_lot_defect_heatmaps.png`:** Pinpoints the exact defect concentration (`Edge_Chip` 45.41%, `Micro_Crack` 27.66%, `Surface_Chip` 16.99% on Vendor A vs. `TTV_OOS` 28.88%, `Warp_OOS` 20.98%, `Saw_Mark` 19.32%, `Bow_OOS` 17.86% on Vendor B) and lot-level escalation windows.
+| Benchmark result | Line A | Line B |
+| --- | ---: | ---: |
+| Mean A-grade yield | 96.09% | 92.68% |
+| Rejected wafers | 2,343 | 4,390 |
+| Leading reject group | Chips and cracks (90.06% of rejects) | Slicing and flatness (87.04% of rejects) |
+| Simulated change window | Lots 9–12 | Lots 7–11 |
+| Return to baseline settings | Lot 13 | Lot 12 |
 
----
+![A-grade yield by lot on the two simulated lines](figures/fig2_longitudinal_lot_yield.png)
 
-## Actionable Engineering Troubleshooting Matrix
+![Pareto charts of primary reject codes by simulated line](figures/fig3_defect_pareto_comparison.png)
 
-| Equipment Line | Dominant Failure Signature | Root-Cause Physical Mechanism | Recommended Preventive Maintenance (PM) Action |
-| :--- | :--- | :--- | :--- |
-| **Vendor A** | `Edge_Chip` (45.4%), `Micro_Crack` (27.7%), `Surface_Chip` (17.0%) | Cassette slot misalignment, vacuum chuck shock, and gripper elastomer wear | Implement 8-lot ($\approx 32,000$-wafer) preventive gripper-pad replacement cycle; recalibrate transfer robot Z-axis deceleration profiles. |
-| **Vendor B** | `TTV_OOS` (28.9%), `Warp_OOS` (21.0%), `Saw_Mark` (19.3%), `Bow_OOS` (17.9%) | Diamond-wire tension loss, guide-wheel wear, and cutting-fluid thermal gradient | Tighten closed-loop wire-tension feedback thresholds; schedule guide-wheel dressing every 6 lots ($\approx 24,000$ wafers); stabilize coolant chiller PID loop. |
+![Heatmaps of primary reject counts by lot](figures/fig4_lot_defect_heatmaps.png)
 
----
+### First Checks in a Plant Investigation
 
-## Quickstart & Reproducibility
+- **TTV and warp:** Check wire condition and usage, tension trends, coolant logs, and saw maintenance.
+- **Chips and cracks:** Trace wire breaks, deglue issues, cassette deformation, and wafer handling by lot.
 
-### 1. Clone the Repository & Install Dependencies
+Section 5 of the white paper explains what records to compare and how to narrow down where the problem started.
+
+## Run the Benchmark
+
+From the repository root, install the dependencies and enter `data/`. Both scripts use the current directory for the CSV, and the analysis writes its four PNGs there.
 
 ```bash
-git clone https://github.com/jenny6449/wafer-spc-defect-attribution.git
+git clone https://github.com/chochoju/wafer-spc-defect-attribution.git
 cd wafer-spc-defect-attribution
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+cd data
 ```
 
-### 2. Regenerate the Synthetic Metrology Dataset *(Optional)*
+Use the included CSV or regenerate it with the following command. Regeneration overwrites the CSV in the current directory.
 
 ```bash
-python src/generate_wafer_metrology.py
+python ../src/generate_wafer_metrology.py
 ```
 
-### 3. Run the Two-Stage SPC & Defect Attribution Pipeline
+Run the analysis and move the four generated PNGs into the repository’s `figures/` folder.
 
 ```bash
-python src/analyze_wafer_spc.py
+python ../src/analyze_wafer_spc.py
+mv fig[1-4]_*.png ../figures/
 ```
-
----
-
-## Governing Metrology Standards
-
-* **SEMI PV22 / PV42:** Dimensional and geometric tolerances for M10 pseudo-square monocrystalline silicon wafers.
-* **SEMI MF1530 / PV68:** Automated non-contact metrology specifications for center thickness, Total Thickness Variation (`TTV`), `Bow`, and `Warp`.
-* **SEMI MF84 / PV66:** Four-point probe and eddy-current bulk electrical resistivity tolerances.
-* **SEMI PV17:** Inline Automated Optical Inspection (AOI) classification for mechanical chips, wire-saw step marks, stains, pinholes, and micro-cracks.
 
 ---
 
 ## Author & Citation
 
-**Author:** Juyeon Cho (Jenny), M.S. in Business Analytics (Duke University) — *Manufacturing Data & Analytics Engineer*
+**Juyeon Cho (Jenny)**
+Manufacturing Data & Analytics Engineer
+M.S. in Business Analytics (Duke University)
 
 If you reference this benchmark dataset or two-stage SPC pipeline in academic or industrial work, please cite:
 
