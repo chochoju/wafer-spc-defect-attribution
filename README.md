@@ -118,9 +118,7 @@ mv fig[1-4]_*.png ../figures/
 
 ## Author & Citation
 
-**Juyeon Cho (Jenny)**
-Manufacturing Data & Analytics Engineer
-M.S. in Business Analytics (Duke University)
+**Juyeon Cho (Jenny)**, M.S. in Business Analytics (Duke University) — *Manufacturing Data & Analytics Engineer*
 
 If you reference this benchmark dataset or two-stage SPC pipeline in academic or industrial work, please cite:
 
