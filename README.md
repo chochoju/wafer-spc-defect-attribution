@@ -5,6 +5,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Domain: Photovoltaic Manufacturing](https://img.shields.io/badge/Domain-PV%20Wafer%20SPC-orange.svg)](#governing-metrology-standards)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24542097.svg)](https://doi.org/10.5281/zenodo.24542097)
 
 ---
 
@@ -127,7 +128,9 @@ If you reference this benchmark dataset or two-stage SPC pipeline in academic or
   author       = {Cho, Juyeon},
   title        = {A Two-Stage Method for Diagnosing Yield Loss in U.S. Solar Wafer Manufacturing: Metrology and Lot-Level Defect Analysis on a Synthetic Benchmark},
   year         = {2026},
-  publisher    = {GitHub / Zenodo},
-  url          = {https://github.com/chochoju/wafer-spc-defect-attribution}
+  howpublished = {Zenodo},
+  note         = {Technical report},
+  doi          = {10.5281/zenodo.24542097},
+  url          = {https://doi.org/10.5281/zenodo.24542097}
 }
 ```
